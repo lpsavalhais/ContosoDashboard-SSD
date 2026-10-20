@@ -1,50 +1,121 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: (template, unversioned) → 1.0.0
+- Modified principles: placeholders replaced with:
+  - [PRINCIPLE_1_NAME] → I. Spec-Driven Development
+  - [PRINCIPLE_2_NAME] → II. Security by Default (NON-NEGOTIABLE)
+  - [PRINCIPLE_3_NAME] → III. Offline-First with Infrastructure Abstraction
+  - [PRINCIPLE_4_NAME] → IV. Layered Architecture and Consistency
+  - [PRINCIPLE_5_NAME] → V. Simplicity and Verifiable Quality
+- Added sections: Technology and Training Constraints; Development Workflow and Quality Gates
+- Removed sections: none
+- Follow-up TODOs: none
+-->
+
+# ContosoDashboard Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Spec-Driven Development
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- Every feature MUST start from a specification (`spec.md`) describing user value, scenarios,
+  and measurable acceptance criteria before any implementation plan or code is written.
+- Implementation MUST follow the Spec Kit flow: specify → clarify (as needed) → plan → tasks →
+  implement. Plans MUST pass the Constitution Check before tasks are generated.
+- Code changes MUST trace back to a task, and tasks MUST trace back to a requirement in the spec.
+- Stakeholder documents (e.g., `StakeholderDocs/`) are inputs to specs, not substitutes for them.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+**Rationale**: This repository exists to teach Spec-Driven Development; traceability from
+requirement to code is the core learning outcome.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Security by Default (NON-NEGOTIABLE)
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+- Every protected page MUST carry the `[Authorize]` attribute (or a role/policy variant).
+- Every service method returning or mutating user data MUST verify the requesting user's
+  authorization (ownership, project membership, or role) — UI checks alone are insufficient.
+- Direct object access by ID MUST be guarded against IDOR; unauthorized requests MUST return
+  not-found/forbidden without leaking existence of the resource.
+- User-supplied input MUST be validated server-side. User-supplied file names MUST NOT be used
+  in file system paths; stored files MUST use generated (GUID-based) names, live outside
+  `wwwroot`, and be served only through authorized endpoints.
+- Existing security headers, cookie settings, and defense-in-depth layers MUST NOT be weakened.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+**Rationale**: The application models secure-by-design practices (OWASP Top 10); new features
+must preserve user isolation and role-based access control.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Offline-First with Infrastructure Abstraction
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- The application MUST run fully offline with no cloud subscriptions or external services.
+- Every infrastructure dependency (database, file storage, authentication, messaging) MUST be
+  consumed through an interface (e.g., `IFileStorageService`) registered via dependency
+  injection, with a local implementation for training.
+- Business logic, UI, and database schema MUST NOT depend on a concrete infrastructure
+  implementation, so cloud equivalents (Azure SQL, Blob Storage, Entra ID) can be swapped in
+  by configuration and DI changes only.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+**Rationale**: Training must be available anywhere, while students learn the abstraction
+patterns required for production cloud migration.
+
+### IV. Layered Architecture and Consistency
+
+- Code MUST respect the existing layers: `Models` (entities), `Data` (EF Core `DbContext`),
+  `Services` (business logic and authorization), `Pages`/`Shared` (Blazor UI).
+- Pages MUST NOT access `ApplicationDbContext` directly; they MUST go through services.
+- New entities MUST follow existing conventions: integer primary keys, explicit relationships
+  and indexes in `ApplicationDbContext`, and text-based values where specs require readability.
+- Features MUST integrate into the current architecture; major rewrites or new frameworks
+  require a constitution amendment.
+
+**Rationale**: Consistent structure keeps the codebase approachable for learners and
+reduces regression risk.
+
+### V. Simplicity and Verifiable Quality
+
+- Prefer the simplest design that satisfies the spec (YAGNI); added complexity MUST be
+  justified in the plan's Complexity Tracking section.
+- Every change MUST build with `dotnet build` with no errors and no new warnings.
+- Each user story MUST define independent acceptance scenarios that are verified (manually or
+  by automated tests) before the story is marked complete.
+- Data-changing operations that span storage and database MUST be ordered to avoid orphaned or
+  inconsistent records (e.g., generate unique path → save file → persist metadata).
+- Performance targets stated in a spec MUST be considered in the plan and validated.
+
+**Rationale**: Small, verifiable increments demonstrate good practice within a training
+context and keep the starter project stable.
+
+## Technology and Training Constraints
+
+- **Stack**: ASP.NET Core 8.0, Blazor Server, Entity Framework Core with SQLite, Bootstrap 5.3
+  with Bootstrap Icons. Deviations require an amendment.
+- **Authentication**: Cookie-based mock authentication with claims and roles (Employee, Team
+  Lead, Project Manager, Administrator). New features MUST reuse it rather than introduce a
+  separate identity mechanism.
+- **Storage**: Local SQLite database and local file system (outside `wwwroot`) only.
+- **Dependencies**: New NuGet packages MUST be justified in the plan and MUST NOT require
+  network services at runtime.
+- **Scope**: The project is for TRAINING PURPOSES ONLY; limitations that differ from
+  production expectations MUST be documented rather than hidden.
+
+## Development Workflow and Quality Gates
+
+1. **Specification gate**: `spec.md` has no unresolved `[NEEDS CLARIFICATION]` markers before
+   planning.
+2. **Plan gate**: `plan.md` includes a Constitution Check that passes (or documents justified
+   exceptions) before and after design.
+3. **Task gate**: `tasks.md` is organized by user story, with each story independently
+   implementable and testable.
+4. **Implementation gate**: build succeeds, acceptance scenarios pass, authorization is enforced
+   at the service layer, and no secrets or user-controlled paths are introduced.
+5. **Review gate**: changes are reviewed against this constitution before merge to `main`.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- This constitution supersedes other project practices; conflicts are resolved in its favor.
+- Amendments MUST be made via `/speckit.constitution`, include a Sync Impact Report, and be
+  committed with a message describing the change and version bump.
+- Versioning follows semantic versioning: MAJOR for removing or redefining principles, MINOR
+  for adding principles/sections or materially expanding guidance, PATCH for clarifications.
+- Every plan and review MUST verify compliance; non-compliance MUST be fixed or explicitly
+  justified in Complexity Tracking. `README.md` provides runtime development guidance.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-10-20 | **Last Amended**: 2026-10-20
