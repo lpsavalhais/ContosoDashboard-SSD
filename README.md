@@ -83,7 +83,7 @@ ContosoDashboard is built using ASP.NET Core 8.0 with Blazor Server and provides
 
 - **Framework**: ASP.NET Core 8.0
 - **UI**: Blazor Server
-- **Database**: SQL Server LocalDB with Entity Framework Core
+- **Database**: SQLite with Entity Framework Core
 - **Authentication**: Cookie-based mock authentication for training (Azure AD/Microsoft Entra ID ready)
 - **Authorization**: Claims-based identity with role-based access control
 - **Styling**: Bootstrap 5.3 with Bootstrap Icons
@@ -97,7 +97,7 @@ ContosoDashboard is built using ASP.NET Core 8.0 with Blazor Server and provides
 This training application follows an **offline-first architecture** with abstraction layers that enable seamless migration to Azure services:
 
 **Current Implementation (Training/Offline):**
-- **Database**: SQL Server LocalDB (offline development database)
+- **Database**: SQLite (offline development database)
 - **File Storage**: Local filesystem for any file-based features
 - **Authentication**: Cookie-based mock authentication
 
@@ -138,7 +138,7 @@ public interface IFileStorageService
 ### Prerequisites
 
 - .NET 8.0 SDK or later
-- SQL Server LocalDB
+- No separate database server needed (SQLite file is created automatically)
 - Visual Studio 2022 or Visual Studio Code
 
 ### Quick Start
@@ -236,15 +236,15 @@ ContosoDashboard/
 
 ### Database Connection
 
-The default connection string in `appsettings.json` uses SQL Server LocalDB:
+The default connection string in `appsettings.json` uses a local SQLite database file:
 
 ```json
 "ConnectionStrings": {
-  "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=ContosoDashboard;Trusted_Connection=True;MultipleActiveResultSets=true"
+  "DefaultConnection": "Data Source=ContosoDashboard.db"
 }
 ```
 
-Update this if using a different SQL Server instance.
+The file is created in the application's working directory on first run. Update the path if you want it stored elsewhere.
 
 ### Production Authentication Guidance
 
@@ -351,11 +351,10 @@ The application includes pre-seeded data for testing:
 
 ### Database Issues
 
-**Option 1: Recreate via LocalDB**
+**Option 1: Delete the SQLite file**
 
-```powershell
-sqllocaldb stop mssqllocaldb
-sqllocaldb delete mssqllocaldb
+```bash
+rm ContosoDashboard.db
 # Then run the application - database will be recreated automatically
 ```
 
