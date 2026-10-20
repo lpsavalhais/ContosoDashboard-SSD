@@ -14,6 +14,8 @@
 - Q: Should a Team Lead be able to see and manage documents a member of their department uploaded as "Personal Files" with no project? → A: No. Team Leads see and manage department documents in every category except Personal Files, which only the owner, people it's explicitly shared with, and Administrators can access.
 - Q: When a user uploads several files at once, how should the title and other details be entered? → A: Category, project, description, and tags are entered once for the whole batch. Each file's title defaults to its file name (without extension) and can be edited before upload.
 - Q: What can a user do with a document someone has shared with them (directly or through their department)? → A: Read-only: recipients can view, preview, and download. They cannot edit, replace, delete, or re-share.
+- Q: Can a "Personal Files" document be linked to a project or task? → A: No. The combination is rejected on upload and on category edit.
+- Q: Who can edit, replace, and delete beyond the uploader? → A: Project Managers of the document's project and Administrators can edit and delete; Administrators can also replace the file. Team Leads per FR-018.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -85,7 +87,7 @@ A document owner edits a document's title, description, category, or tags, repla
 2. **Given** a user owns a document, **When** they replace the file with a new supported file, **Then** subsequent downloads return the new file and the file size and type are updated.
 3. **Given** a user owns a document, **When** they choose delete and confirm, **Then** the document and its file are permanently removed. **When** they cancel instead, **Then** nothing changes.
 4. **Given** a Project Manager of Project A, **When** they delete a document in Project A uploaded by someone else, **Then** the deletion succeeds after confirmation.
-5. **Given** a user who neither owns a document nor manages its project, **When** they try to edit or delete it, **Then** the action is denied.
+5. **Given** a user who has no manage permission for a document under FR-020 and FR-022, **When** they try to edit or delete it, **Then** the action is denied.
 
 ---
 
@@ -147,6 +149,7 @@ All document activities (upload, download, delete, share) are recorded. Administ
 - When a user is removed from a project, they immediately lose access to that project's documents, unless the documents were individually shared with them.
 - A Team Lead who opens or searches for a department member's "Personal Files" document that was not shared with them is denied access, and the document does not appear in their lists or search results. If the owner later changes the document's category away from "Personal Files", the Team Lead gains access.
 - When a project member who uploaded documents leaves the project, the documents remain with the project.
+- Changing the category of a project- or task-linked document to "Personal Files" is rejected with "Personal Files cannot be linked to a project or task."
 - Deleting a document that has been shared removes it from all recipients' Shared with Me sections.
 - Sharing a document with someone who already has access does not create duplicate entries or duplicate notifications.
 - A user with no documents sees a helpful empty state in My Documents, Shared with Me, and the Recent Documents widget.
@@ -161,7 +164,7 @@ All document activities (upload, download, delete, share) are recorded. Administ
 - **FR-001**: Users MUST be able to select and upload one or more files in a single action. In a multi-file upload, category, associated project, description, and tags MUST be entered once and applied to every file in the batch.
 - **FR-002**: The system MUST accept only these file types: PDF; Word, Excel, and PowerPoint documents; plain text; JPEG; and PNG. It MUST reject all others with a message listing the supported types.
 - **FR-003**: The system MUST reject any file larger than 25 MB with a clear message stating the limit.
-- **FR-004**: The system MUST require a title and a category for each document. Each file's title MUST default to its original file name without extension and MUST be editable before upload; an empty title MUST block upload of that file. Category MUST be one of: Project Documents, Team Resources, Personal Files, Reports, Presentations, Other. Description, associated project, and free-form tags MUST be optional.
+- **FR-004**: The system MUST require a title and a category for each document. Each file's title MUST default to its original file name without extension and MUST be editable before upload; an empty title MUST block upload of that file. Category MUST be one of: Project Documents, Team Resources, Personal Files, Reports, Presentations, Other. Description, associated project, and free-form tags MUST be optional. The "Personal Files" category MUST NOT be combined with an associated project or task; such uploads MUST be rejected with "Personal Files cannot be linked to a project or task."
 - **FR-005**: The system MUST automatically record the upload date and time, the uploader, the file size, and the file type (including long Office document type identifiers).
 - **FR-006**: The system MUST check each uploaded file for malware before making it available. Files that fail MUST be rejected and not retained. In the offline training environment, the check MUST at minimum (a) verify that the file content matches its declared type and (b) detect and reject the EICAR standard test file. The check MUST be replaceable by a full antivirus engine without changing user-facing behavior.
 - **FR-007**: The system MUST show upload progress and a success or error message for each file.
@@ -186,9 +189,9 @@ All document activities (upload, download, delete, share) are recorded. Administ
 
 **Management and sharing**
 
-- **FR-020**: Document uploaders MUST be able to edit the title, description, category, and tags of their documents.
-- **FR-021**: Document uploaders MUST be able to replace a document's file with an updated version. The replacement is subject to the same validation as an upload. No prior version is retained.
-- **FR-022**: Document uploaders MUST be able to delete their documents. Project Managers MUST be able to delete any document in their projects. Deletion MUST require explicit confirmation and MUST permanently remove the document and its file.
+- **FR-020**: Document uploaders, Project Managers of the document's project, Team Leads per FR-018, and Administrators MUST be able to edit the title, description, category, and tags.
+- **FR-021**: Document uploaders and Administrators MUST be able to replace a document's file with an updated version. The replacement is subject to the same validation as an upload. No prior version is retained.
+- **FR-022**: Document uploaders MUST be able to delete their documents. Project Managers MUST be able to delete any document in their projects. Administrators MUST be able to delete any document. Deletion MUST require explicit confirmation and MUST permanently remove the document and its file.
 - **FR-023**: Document uploaders MUST be able to share a document with specific users or with a department. A department share grants access to all users currently in that department.
 - **FR-024**: Recipients of a shared document MUST receive an in-app notification and see the document in a "Shared with Me" section. Shared access is read-only: recipients MAY view, preview, and download, and MUST NOT edit, replace, delete, or re-share the document (unless they hold another permission under FR-016–FR-018).
 

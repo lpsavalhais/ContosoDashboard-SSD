@@ -29,6 +29,7 @@ description: "Task list for Document Upload and Management"
 
 **Purpose**: Configuration and test project scaffolding
 
+- [ ] T000a Create and switch to branch `001-document-management` (`git checkout -b 001-document-management`); all feature commits go to this branch
 - [ ] T001 [P] Add `**/AppData/` to `.gitignore` so uploaded files are never committed
 - [ ] T002 [P] Add a `"DocumentStorage": { "RootPath": "AppData/uploads", "MaxFileSizeBytes": 26214400 }` section to `ContosoDashboard/appsettings.json`
 - [ ] T003 [P] Create the xUnit test project `ContosoDashboard.Tests/ContosoDashboard.Tests.csproj` targeting `net10.0`:
@@ -53,6 +54,7 @@ description: "Task list for Document Upload and Management"
   - Static class with constants `ProjectDocuments = "Project Documents"`, `TeamResources = "Team Resources"`, `PersonalFiles = "Personal Files"`, `Reports = "Reports"`, `Presentations = "Presentations"`, `Other = "Other"`
   - `IReadOnlyList<string> All`
   - `bool IsValid(string)` using an ordinal comparison
+  - In the same file, a static class `DocumentFileTypes` with `IReadOnlyDictionary<string,string> Map` (extension → canonical MIME type, per [research.md](research.md) R5) and `bool IsAllowed(string ext)`
 - [ ] T006 [P] Create `ContosoDashboard/Models/Document.cs` per [data-model.md](data-model.md). DataAnnotations:
   - `DocumentId` int [Key]
   - `Title` string "Required, max 255"
@@ -191,6 +193,8 @@ description: "Task list for Document Upload and Management"
   - When `SaveChanges` fails (simulated by a duplicate `FilePath` or a disposed context), the stored file is deleted (no orphans, SC-010)
   - Associating a project the user is not a member of is rejected with "You can only add documents to projects you belong to."
   - An `Upload` `DocumentActivity` row is written per created document
+  - Uploading `photo.png` with browser content type `text/html` stores `FileType == "image/png"`
+  - Category "Personal Files" with a `ProjectId` or `TaskId` is rejected with "Personal Files cannot be linked to a project or task."
 
 ### Implementation for User Story 1
 
@@ -198,11 +202,12 @@ description: "Task list for Document Upload and Management"
   - (1) Size ≤ `MaxFileSizeBytes` and > 0.
   - (2) Lowercased extension in the whitelist `.pdf .doc .docx .xls .xlsx .ppt .pptx .txt .jpg .jpeg .png`.
   - (3) Title is non-blank after trim (max 255). Category passes `DocumentCategories.IsValid`.
+  - (3b) If the category is "Personal Files", `ProjectId` and `TaskId` must both be null; otherwise reject with "Personal Files cannot be linked to a project or task."
   - (4) If `ProjectId` is set, the requester is that project's PM or a `ProjectMember` (Administrator: any), FR-017.
   - (5) `IMalwareScanner.ScanAsync` is clean.
   - (6) The key is `{userId}/{projectId?.ToString() ?? "personal"}/{Guid.NewGuid()}{ext}`.
   - (7) `IFileStorageService.UploadAsync`.
-  - (8) Insert the `Document` with `FileType` = the browser content type truncated to 255 (fallback `application/octet-stream`), normalized tags, and UTC dates, then `SaveChangesAsync`.
+  - (8) Insert the `Document` with `FileType = DocumentFileTypes.Map[ext]` (the browser-supplied content type is ignored), normalized tags, and UTC dates, then `SaveChangesAsync`.
   - (9) On DB failure, call `DeleteAsync(key)` and report a `FileError`.
   - (10) `LogActivityAsync(Upload)`.
   - Use the exact messages from [contracts/http-endpoints.md](contracts/http-endpoints.md).
@@ -318,7 +323,7 @@ description: "Task list for Document Upload and Management"
 - [ ] T036 [P] [US4] Write `ContosoDashboard.Tests/DocumentServiceManageTests.cs`. Cover:
   - `UpdateMetadataAsync` succeeds for the uploader, the project PM, a same-department TeamLead (non-personal), and an Administrator.
   - `UpdateMetadataAsync` fails for a share recipient, a project member who is not the uploader, and a TeamLead on "Personal Files".
-  - `UpdateMetadataAsync` validates the title and category.
+  - `UpdateMetadataAsync` validates the title and category, and rejects changing a project- or task-linked document to "Personal Files".
   - `ReplaceFileAsync` succeeds only for the uploader or an Administrator, stores the new file under a new key, deletes the old key, updates size, type, extension, and original name, rejects EICAR or oversized files, and leaves the record unchanged on failure.
   - `DeleteAsync` removes the row, its shares, and the stored file. It succeeds for the project PM on someone else's document and fails for unauthorized users.
   - `Replace` and `Delete` activity rows are written.
@@ -328,11 +333,12 @@ description: "Task list for Document Upload and Management"
 - [ ] T037 [US4] Implement `UpdateMetadataAsync` in `ContosoDashboard/Services/DocumentService.cs`:
   - Load the document through `VisibleTo` and require `CanManage`.
   - Validate the title (required, max 255), description (max 2000), and category (`DocumentCategories.IsValid`). Normalize tags (max 500).
+  - Reject a change to "Personal Files" when the document has a `ProjectId` or `TaskId`.
   - Set `UpdatedDate = DateTime.UtcNow` and return `false` when denied or invalid.
 - [ ] T038 [US4] Implement `ReplaceFileAsync` in `ContosoDashboard/Services/DocumentService.cs`:
   - Require `CanReplace` and run the same size, extension, and scan validation as `UploadAsync`.
   - Generate a new key with the same `{userId}/{projectId|personal}/` prefix and a new GUID, then upload the file.
-  - Update `FilePath`, `FileType`, `FileExtension`, `FileSizeBytes`, `OriginalFileName`, and `UpdatedDate`, then save. On save failure, delete the new key.
+  - Update `FilePath`, `FileType` (from `DocumentFileTypes.Map`), `FileExtension`, `FileSizeBytes`, `OriginalFileName`, and `UpdatedDate`, then save. On save failure, delete the new key.
   - On success, delete the old key; a failure here is only logged.
   - `LogActivityAsync(Replace)`.
 - [ ] T039 [US4] Implement `DeleteAsync` in `ContosoDashboard/Services/DocumentService.cs`:
@@ -476,6 +482,7 @@ description: "Task list for Document Upload and Management"
 - [ ] T061 Run `dotnet build --no-incremental` in `ContosoDashboard/` and fix any new warnings (constitution V)
 - [ ] T062 Run `dotnet test ContosoDashboard.Tests` and ensure all tests pass
 - [ ] T063 Run the manual scenarios #1–#14 in `specs/001-document-management/quickstart.md`, deleting `ContosoDashboard/ContosoDashboard.db*` and `ContosoDashboard/AppData/uploads` first
+- [ ] T065 Open a pull request from `001-document-management` to `main`; the reviewer verifies constitution principles I–V and the five quality gates before merge
 - [ ] T064 Do the performance spot check from `specs/001-document-management/quickstart.md`:
   - About 500 documents: `/documents` loads and search returns in < 2 s.
   - A 25 MB upload completes in < 30 s, and a preview opens in < 3 s.

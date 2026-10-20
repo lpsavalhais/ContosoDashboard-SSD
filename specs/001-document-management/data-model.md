@@ -15,7 +15,7 @@ The conventions follow the existing models: integer keys, DataAnnotations plus e
 | Tags | string? | max 500 | Normalized `,tag1,tag2,` (lowercase, trimmed, de-duplicated) |
 | OriginalFileName | string | Required, max 255 | Display and download name only; never used in paths |
 | FilePath | string | Required, max 500, unique | Relative storage key `{userId}/{projectId\|personal}/{guid}{ext}` |
-| FileType | string | Required, max 255 | MIME type (long Office types fit) |
+| FileType | string | Required, max 255 | MIME type derived server-side from `FileExtension` via `DocumentFileTypes.Map` (never the browser value); max 255 fits long Office types |
 | FileExtension | string | Required, max 10 | Lowercased, whitelisted (e.g., `.pdf`) |
 | FileSizeBytes | long | Required, 1 to 26,214,400 | |
 | UploadedByUserId | int | Required, FK → User | Restrict delete |
@@ -35,6 +35,7 @@ The conventions follow the existing models: integer keys, DataAnnotations plus e
 - Category must be in the fixed list (FR-004).
 - If ProjectId is set, the uploader must be the PM or a member of that project, unless Administrator (FR-017).
 - If TaskId is set, the task's project must be visible to the uploader, and ProjectId is forced to the task's ProjectId.
+- Category "Personal Files" requires ProjectId and TaskId to be null (on upload and on metadata edit).
 - The content must pass `IMalwareScanner` (FR-006).
 
 ## Entity: DocumentShare (new)

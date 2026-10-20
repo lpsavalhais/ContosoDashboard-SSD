@@ -8,7 +8,7 @@ All routes require an authenticated cookie session. Authorization is enforced by
 
 | Case | Status | Body / headers |
 |---|---|---|
-| User may view the document | 200 | File bytes. `Content-Type: {FileType}`. `Content-Disposition: attachment; filename*=UTF-8''{OriginalFileName}`. `Cache-Control: no-store`. `X-Content-Type-Options: nosniff` |
+| User may view the document | 200 | File bytes. `Content-Type: {FileType}` (server-derived from the extension, never the browser value). `Content-Disposition: attachment; filename*=UTF-8''{OriginalFileName}`. `Cache-Control: no-store`. `X-Content-Type-Options: nosniff` |
 | Document missing **or** user not permitted | 404 | Empty (existence not revealed, FR-016) |
 | Not authenticated | 302 → `/login` | Cookie auth challenge |
 
@@ -44,6 +44,7 @@ Same as download, with these differences:
 | Scan failed | "{file} failed the security check and was not uploaded." |
 | Missing title / category | "Title is required." / "Category is required." |
 | Not permitted to target project | "You can only add documents to projects you belong to." |
+| Personal Files with project or task | "Personal Files cannot be linked to a project or task." |
 | Upload success | "{n} document(s) uploaded successfully." |
 | Not found / no access | "Document not found." |
 | Search empty | "No documents match your search." |

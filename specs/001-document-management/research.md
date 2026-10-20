@@ -55,6 +55,19 @@ All Technical Context items were resolvable from the codebase, the constitution,
   - `GET /documents/{id:int}/preview` returns `inline`, and only for PDF, PNG, and JPEG.
   
   Both resolve the user ID from the `NameIdentifier` claim and call `IDocumentService.OpenForReadAsync(id, userId, isPreview)`, which enforces the access rule and logs the activity. Unauthorized or missing documents return **404** (no existence leak). Both endpoints add `Cache-Control: no-store`.
+- **Content-Type**: The served `Content-Type` is always the canonical type for the whitelisted extension, never the browser-supplied value:
+  - `.pdf` application/pdf
+  - `.doc` application/msword
+  - `.docx` application/vnd.openxmlformats-officedocument.wordprocessingml.document
+  - `.xls` application/vnd.ms-excel
+  - `.xlsx` application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+  - `.ppt` application/vnd.ms-powerpoint
+  - `.pptx` application/vnd.openxmlformats-officedocument.presentationml.presentation
+  - `.txt` text/plain; charset=utf-8
+  - `.jpg`/`.jpeg` image/jpeg
+  - `.png` image/png
+  
+  This prevents a file that passes the magic-byte check from being served inline as `text/html` (stored XSS).
 - **PDF preview**: Open in a new browser tab (`target="_blank"`), not an `<iframe>`, so the existing `X-Frame-Options: DENY` and CSP stay unchanged (constitution principle II). Image previews render with `<img src="/documents/{id}/preview">`, which is allowed by `img-src 'self'`.
 - **Rationale**: Blazor components cannot stream file responses, so HTTP endpoints are required. Minimal APIs avoid adding MVC controllers to a project that has none.
 - **Alternatives considered**: An MVC controller (more ceremony, same outcome). An iframe preview (would require relaxing `X-Frame-Options`, which violates the constitution).

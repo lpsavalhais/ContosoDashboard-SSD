@@ -1,13 +1,10 @@
 <!--
 Sync Impact Report
-- Version change: (template, unversioned) → 1.0.0
-- Modified principles: placeholders replaced with:
-  - [PRINCIPLE_1_NAME] → I. Spec-Driven Development
-  - [PRINCIPLE_2_NAME] → II. Security by Default (NON-NEGOTIABLE)
-  - [PRINCIPLE_3_NAME] → III. Offline-First with Infrastructure Abstraction
-  - [PRINCIPLE_4_NAME] → IV. Layered Architecture and Consistency
-  - [PRINCIPLE_5_NAME] → V. Simplicity and Verifiable Quality
-- Added sections: Technology and Training Constraints; Development Workflow and Quality Gates
+- Version change: 1.0.0 → 1.0.1 (PATCH)
+- Modified principles: none
+- Modified sections: Technology and Training Constraints → Stack updated from ASP.NET Core 8.0
+  to ASP.NET Core 10 (.NET 10, net10.0) with EF Core 10 and SQLite, matching ContosoDashboard.csproj
+- Added sections: none
 - Removed sections: none
 - Follow-up TODOs: none
 -->
@@ -85,8 +82,8 @@ context and keep the starter project stable.
 
 ## Technology and Training Constraints
 
-- **Stack**: ASP.NET Core 8.0, Blazor Server, Entity Framework Core with SQLite, Bootstrap 5.3
-  with Bootstrap Icons. Deviations require an amendment.
+- **Stack**: ASP.NET Core 10 (.NET 10, `net10.0`), Blazor Server, Entity Framework Core 10 with
+  SQLite, Bootstrap 5.3 with Bootstrap Icons. Deviations require an amendment.
 - **Authentication**: Cookie-based mock authentication with claims and roles (Employee, Team
   Lead, Project Manager, Administrator). New features MUST reuse it rather than introduce a
   separate identity mechanism.
@@ -118,4 +115,4 @@ context and keep the starter project stable.
 - Every plan and review MUST verify compliance; non-compliance MUST be fixed or explicitly
   justified in Complexity Tracking. `README.md` provides runtime development guidance.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-20 | **Last Amended**: 2026-10-20
+**Version**: 1.0.1 | **Ratified**: 2026-10-20 | **Last Amended**: 2026-10-20
