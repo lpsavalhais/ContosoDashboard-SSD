@@ -5,6 +5,16 @@
 **Status**: Draft  
 **Input**: User description: "--file StakeholderDocs/document-upload-and-management-feature.md" (Document Upload and Management Feature – Requirements)
 
+## Clarifications
+
+### Session 2026-10-20
+
+- Q: What should "team" mean when deciding which documents a Team Lead can manage and who receives a document shared "with a team"? → A: Team = department. A Team Lead manages documents from users in their department, and sharing goes to all users in a department.
+- Q: How should uploaded files be checked for malware in the offline training environment? → A: Use a local, replaceable check: confirm the file content matches its declared type and reject a known test-virus file (EICAR, a harmless standard test file that antivirus tools flag). A real antivirus engine can be plugged in later.
+- Q: Should a Team Lead be able to see and manage documents a member of their department uploaded as "Personal Files" with no project? → A: No. Team Leads see and manage department documents in every category except Personal Files, which only the owner, people it's explicitly shared with, and Administrators can access.
+- Q: When a user uploads several files at once, how should the title and other details be entered? → A: Category, project, description, and tags are entered once for the whole batch. Each file's title defaults to its file name (without extension) and can be edited before upload.
+- Q: What can a user do with a document someone has shared with them (directly or through their department)? → A: Read-only: recipients can view, preview, and download. They cannot edit, replace, delete, or re-share.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Upload and view my documents (Priority: P1)
@@ -18,16 +28,17 @@ An employee uploads one or more work documents from their computer, giving each 
 **Acceptance Scenarios**:
 
 1. **Given** a logged-in employee on the upload screen, **When** they select a 2 MB PDF, enter a title, choose the "Reports" category, and submit, **Then** they see upload progress followed by a success message, and the document appears in My Documents with title, category, upload date, file size, and project (if any).
-2. **Given** a logged-in employee, **When** they select three supported files in one upload action and provide the required metadata, **Then** all three documents are stored and listed.
+2. **Given** a logged-in employee, **When** they select three supported files in one upload action, choose a category once for the batch, and accept or edit the per-file titles (pre-filled from file names without extension), **Then** all three documents are stored with the shared category and their individual titles.
 3. **Given** a user selects a file larger than 25 MB, **When** they try to upload it, **Then** the upload is rejected with a clear message stating the 25 MB limit and nothing is stored.
 4. **Given** a user selects an unsupported file type (e.g., an executable), **When** they try to upload it, **Then** the upload is rejected with a message listing the supported types.
-5. **Given** a user omits the title or category, **When** they submit, **Then** the form indicates the missing required fields and does not upload.
-6. **Given** a user has 20 documents in My Documents, **When** they sort by file size or filter by category, project, or date range, **Then** the list updates to show only matching documents in the chosen order.
-7. **Given** a user owns a document, **When** they choose download, **Then** they receive the original file with its original name and type.
+5. **Given** a user selects a `.txt` file containing the EICAR test string, or a `.pdf` file whose content is not a PDF, **When** they upload it, **Then** the upload is rejected with a security-check failure message and nothing is stored.
+6. **Given** a user omits the title or category, **When** they submit, **Then** the form indicates the missing required fields and does not upload.
+7. **Given** a user has 20 documents in My Documents, **When** they sort by file size or filter by category, project, or date range, **Then** the list updates to show only matching documents in the chosen order.
+8. **Given** a user owns a document, **When** they choose download, **Then** they receive the original file with its original name and type.
 
 ---
 
-### User Story 2 - Project documents for team members (Priority: P2)
+### User Story 2 - Project documents for project members (Priority: P2)
 
 Project members see every document associated with a project they belong to, from the project's detail view. Project Managers can upload documents to their projects. Project members are notified when a new document is added to one of their projects.
 
@@ -80,7 +91,7 @@ A document owner edits a document's title, description, category, or tags, repla
 
 ### User Story 5 - Share documents with colleagues (Priority: P3)
 
-A document owner shares a document with specific users or with a team (department). Recipients get an in-app notification and find the document in a "Shared with Me" section.
+A document owner shares a document with specific users or with a department. Recipients get an in-app notification and find the document in a "Shared with Me" section.
 
 **Why this priority**: Controlled sharing replaces risky email and shared-drive sharing, but it depends on upload and access control being in place first.
 
@@ -89,8 +100,9 @@ A document owner shares a document with specific users or with a team (departmen
 **Acceptance Scenarios**:
 
 1. **Given** a user owns a document, **When** they share it with a specific colleague, **Then** the colleague receives an in-app notification and the document appears in their Shared with Me section.
-2. **Given** a user owns a document, **When** they share it with a team, **Then** every current member of that team gains access and is notified.
+2. **Given** a user owns a document, **When** they share it with a department, **Then** every current member of that department gains access and is notified.
 3. **Given** a document has not been shared with a user and the user has no other permission to it, **When** that user tries to access it, **Then** access is denied.
+4. **Given** a document was shared with a user, **When** that user tries to edit, replace, delete, or re-share it, **Then** the action is denied. Viewing, previewing, and downloading remain allowed.
 
 ---
 
@@ -133,6 +145,7 @@ All document activities (upload, download, delete, share) are recorded. Administ
 - Two documents uploaded with the same original file name (by the same or different users) are stored independently. Neither overwrites the other.
 - Original file names containing path characters (e.g., `../`) or unusual characters cannot affect where the file is stored.
 - When a user is removed from a project, they immediately lose access to that project's documents, unless the documents were individually shared with them.
+- A Team Lead who opens or searches for a department member's "Personal Files" document that was not shared with them is denied access, and the document does not appear in their lists or search results. If the owner later changes the document's category away from "Personal Files", the Team Lead gains access.
 - When a project member who uploaded documents leaves the project, the documents remain with the project.
 - Deleting a document that has been shared removes it from all recipients' Shared with Me sections.
 - Sharing a document with someone who already has access does not create duplicate entries or duplicate notifications.
@@ -145,12 +158,12 @@ All document activities (upload, download, delete, share) are recorded. Administ
 
 **Upload and validation**
 
-- **FR-001**: Users MUST be able to select and upload one or more files in a single action.
+- **FR-001**: Users MUST be able to select and upload one or more files in a single action. In a multi-file upload, category, associated project, description, and tags MUST be entered once and applied to every file in the batch.
 - **FR-002**: The system MUST accept only these file types: PDF; Word, Excel, and PowerPoint documents; plain text; JPEG; and PNG. It MUST reject all others with a message listing the supported types.
 - **FR-003**: The system MUST reject any file larger than 25 MB with a clear message stating the limit.
-- **FR-004**: The system MUST require a title and a category for each upload. Category MUST be one of: Project Documents, Team Resources, Personal Files, Reports, Presentations, Other. Description, associated project, and free-form tags MUST be optional.
+- **FR-004**: The system MUST require a title and a category for each document. Each file's title MUST default to its original file name without extension and MUST be editable before upload; an empty title MUST block upload of that file. Category MUST be one of: Project Documents, Team Resources, Personal Files, Reports, Presentations, Other. Description, associated project, and free-form tags MUST be optional.
 - **FR-005**: The system MUST automatically record the upload date and time, the uploader, the file size, and the file type (including long Office document type identifiers).
-- **FR-006**: The system MUST check each uploaded file for malware before making it available. Files that fail MUST be rejected and not retained.
+- **FR-006**: The system MUST check each uploaded file for malware before making it available. Files that fail MUST be rejected and not retained. In the offline training environment, the check MUST at minimum (a) verify that the file content matches its declared type and (b) detect and reject the EICAR standard test file. The check MUST be replaceable by a full antivirus engine without changing user-facing behavior.
 - **FR-007**: The system MUST show upload progress and a success or error message for each file.
 - **FR-008**: The system MUST store files using system-generated unique identifiers, never user-supplied file names. Files MUST be stored outside any publicly reachable location so they can be retrieved only through permission-checked access.
 - **FR-009**: The system MUST NOT leave a document record without a stored file, or a stored file without a document record, when an upload fails at any step.
@@ -166,9 +179,9 @@ All document activities (upload, download, delete, share) are recorded. Administ
 
 **Permissions**
 
-- **FR-016**: Access to a document MUST be granted only to: its uploader; members of its associated project; users or team members it has been shared with; the Team Lead of the uploader's team (department); Project Managers of its associated project; and Administrators. All others MUST be denied without the document's existence being revealed.
+- **FR-016**: Access to a document MUST be granted only to: its uploader; members of its associated project; users it has been shared with, directly or via their department; Team Leads of the uploader's department (except for documents in the "Personal Files" category); Project Managers of its associated project; and Administrators. All others MUST be denied without the document's existence being revealed.
 - **FR-017**: Employees MUST be able to associate a document only with projects they are members of. Project Managers MUST be able to upload documents to projects they manage.
-- **FR-018**: Team Leads MUST be able to view and manage (edit metadata, delete) documents uploaded by members of their team.
+- **FR-018**: Team Leads MUST be able to view and manage (edit metadata, delete) documents uploaded by users in their own department, excluding documents in the "Personal Files" category. Personal Files are accessible only to their owner, users or departments they are explicitly shared with, and Administrators.
 - **FR-019**: Permission checks MUST be enforced on every document operation (list, search, view, preview, download, edit, replace, delete, share), including requests made by direct link.
 
 **Management and sharing**
@@ -176,8 +189,8 @@ All document activities (upload, download, delete, share) are recorded. Administ
 - **FR-020**: Document uploaders MUST be able to edit the title, description, category, and tags of their documents.
 - **FR-021**: Document uploaders MUST be able to replace a document's file with an updated version. The replacement is subject to the same validation as an upload. No prior version is retained.
 - **FR-022**: Document uploaders MUST be able to delete their documents. Project Managers MUST be able to delete any document in their projects. Deletion MUST require explicit confirmation and MUST permanently remove the document and its file.
-- **FR-023**: Document uploaders MUST be able to share a document with specific users or with a team (department).
-- **FR-024**: Recipients of a shared document MUST receive an in-app notification and see the document in a "Shared with Me" section.
+- **FR-023**: Document uploaders MUST be able to share a document with specific users or with a department. A department share grants access to all users currently in that department.
+- **FR-024**: Recipients of a shared document MUST receive an in-app notification and see the document in a "Shared with Me" section. Shared access is read-only: recipients MAY view, preview, and download, and MUST NOT edit, replace, delete, or re-share the document (unless they hold another permission under FR-016–FR-018).
 
 **Integrations**
 
@@ -194,9 +207,9 @@ All document activities (upload, download, delete, share) are recorded. Administ
 ### Key Entities *(include if feature involves data)*
 
 - **Document**: An uploaded work file and its metadata: title, optional description, category (stored as readable text), optional tags, original file name, stored file location, file type, file size, upload date and time, uploader, optional associated project, and optional associated task. Uses whole-number identifiers, consistent with existing users and projects.
-- **Document Share**: A grant of access to a document. It links the document to either a recipient user or a recipient team, and records who shared it and when.
+- **Document Share**: A grant of access to a document. It links the document to either a recipient user or a recipient department, and records who shared it and when.
 - **Document Activity**: An audit entry recording an action (upload, download, delete, share) on a document: the acting user, the document, the action type, and the timestamp.
-- **Related existing entities**: User (uploader, recipient, role, department/team), Project (association and membership), Task (attachment), and Notification (share and new-document alerts).
+- **Related existing entities**: User (uploader, recipient, role, department), Project (association and membership), Task (attachment), and Notification (share and new-document alerts).
 
 ## Success Criteria *(mandatory)*
 
@@ -216,9 +229,8 @@ All document activities (upload, download, delete, share) are recorded. Administ
 ## Assumptions
 
 - The feature must work fully offline, using local storage on the machine running the application, for training purposes. The storage location must be swappable for cloud storage later without changing user-facing behavior or stored document data.
-- A user's "team" is their department. Team Leads manage documents uploaded by employees in their department, and sharing "with a team" means sharing with all users in a department.
 - The existing mock login and roles (Employee, Team Lead, Project Manager, Administrator) are used for all permission decisions. The login provides each user's identity, name, email, role, and department.
-- Malware checking in the offline training environment uses a local, replaceable check (at minimum, verifying that file content matches the declared type). A full antivirus engine can be substituted in production.
+- Malware checking in the offline training environment uses the local, replaceable check defined in FR-006. A full antivirus engine can be substituted in production.
 - "Typical network" means a local or corporate LAN connection. Most documents are under 10 MB.
 - Replacing a file overwrites the previous version. Version history is out of scope.
 - Deletion is permanent. Soft delete or trash recovery is out of scope.
