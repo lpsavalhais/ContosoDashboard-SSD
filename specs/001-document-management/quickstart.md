@@ -59,6 +59,8 @@ Expected: all tests pass, covering:
 | 12 | US7 | Admin → `/documents/reports`; Ni → `/documents/reports` | Admin sees top types, top uploaders, and access patterns that reflect the steps above; Ni is denied |
 | 13 | Security | View page source and response headers on download and preview | `X-Frame-Options: DENY`, CSP unchanged, `Cache-Control: no-store`; no file is reachable under `/wwwroot` |
 | 14 | Storage | Inspect `ContosoDashboard/AppData/uploads` | Files are named `{userId}/{projectId\|personal}/{guid}.{ext}`; no original file names on disk |
+| 15 | US1/A1 | Ni uploads a doc with category "Personal Files" and project "ContosoDashboard Development" selected; then edits a project doc's category to "Personal Files" | Both rejected with "Personal Files cannot be linked to a project or task." |
+| 16 | Security | Download and preview `photo.png` and `notes.txt`; inspect the `Content-Type` response header | `image/png` and `text/plain; charset=utf-8`, regardless of what the browser sent at upload |
 
 ## Performance spot checks
 

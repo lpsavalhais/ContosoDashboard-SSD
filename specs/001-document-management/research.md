@@ -81,7 +81,7 @@ All Technical Context items were resolvable from the codebase, the constitution,
   | View / preview / download | Administrator; uploader; PM or member of the doc's project; direct share recipient; member of a shared department; TeamLead of the uploader's department when Category ≠ "Personal Files" |
   | Edit metadata / delete | Administrator; uploader; PM of the doc's project; TeamLead of the uploader's department when Category ≠ "Personal Files" |
   | Replace file / share | Uploader only (plus Administrator for replace) |
-  | Associate with project on upload | PM or member of that project (Administrator: any) |
+  | Associate with project on upload | PM or member of that project (Administrator: any). Never allowed for category "Personal Files" (also blocks a task link) |
   | Reports | Administrator only (page policy + service check) |
 
 - **Rationale**: A single query predicate prevents drift between lists, search, and direct access (SC-009). Share recipients get read-only access (Q5). Using the database copy of role and department avoids stale-claim problems.
@@ -121,7 +121,7 @@ All Technical Context items were resolvable from the codebase, the constitution,
 - **Rationale**: SC-009 (zero unauthorized access) and SC-010 (no orphans) are security-critical and combinatorial, so automated tests verify them cheaply and repeatably (constitution principles II and V). New packages (`xunit`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk`) are test-only and need no network at runtime.
 - **Alternatives considered**: Manual testing only. Rejected because the role × relationship × category matrix is too large to check by hand reliably.
 
-## R12. Target framework drift (constitution)
+## R12. Target framework (constitution) — resolved
 
-- **Finding**: The constitution lists "ASP.NET Core 8.0", but `ContosoDashboard.csproj` already targets `net10.0` with EF Core 10.0.13 (a pre-existing upgrade, not introduced by this feature).
-- **Decision**: Build this feature on the existing `net10.0` stack and recommend a PATCH amendment to the constitution's Technology section to record .NET 10. This is not a feature violation.
+- **Finding**: Constitution v1.0.0 listed "ASP.NET Core 8.0", but `ContosoDashboard.csproj` already targeted `net10.0` with EF Core 10.0.13 (a pre-existing upgrade, not introduced by this feature).
+- **Decision**: Constitution amended to **v1.0.1** (PATCH), which lists ASP.NET Core 10 (.NET 10, `net10.0`) with EF Core 10 and SQLite. The feature builds on that stack with no deviation.

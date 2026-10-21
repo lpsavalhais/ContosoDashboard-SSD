@@ -45,6 +45,7 @@ Same as download, with these differences:
 | Missing title / category | "Title is required." / "Category is required." |
 | Not permitted to target project | "You can only add documents to projects you belong to." |
 | Personal Files with project or task | "Personal Files cannot be linked to a project or task." |
+| Task without project | "This task has no project; upload from My Documents instead." |
 | Upload success | "{n} document(s) uploaded successfully." |
 | Not found / no access | "Document not found." |
 | Search empty | "No documents match your search." |

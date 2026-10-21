@@ -5,6 +5,7 @@
 @attribute [Authorize]
 @inject IDashboardService DashboardService
 @inject INotificationService NotificationService
+@inject IDocumentService DocumentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Dashboard - ContosoDashboard</PageTitle>
@@ -52,6 +53,14 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-3 mb-3">
+                <div class="card summary-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Documents</h5>
+                        <p class="card-text display-4 text-success">@summary.DocumentCount</p>
+                    </div>
+                </div>
+            </div>
         </div>
     }
 
@@ -93,6 +102,30 @@
                     <i class="bi bi-person"></i> Edit Profile
                 </a>
             </div>
+
+            <div class="d-flex align-items-center justify-content-between mt-4 mb-2">
+                <h3 class="h5 mb-0">Recent Documents</h3>
+                <a href="/documents" class="small">View all</a>
+            </div>
+            @if (recentDocuments.Count > 0)
+            {
+                <div class="list-group">
+                    @foreach (var document in recentDocuments)
+                    {
+                        <a href="/documents/@document.DocumentId/download" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between gap-2">
+                                <strong>@document.Title</strong>
+                                <small class="text-muted">@document.UploadedDate.ToLocalTime().ToString("d")</small>
+                            </div>
+                            <small class="text-muted">@document.Category</small>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-muted">No documents uploaded yet.</p>
+            }
         </div>
 
         <div class="col-md-6">
@@ -124,6 +157,7 @@
     private DashboardSummary? summary;
     private List<Announcement>? announcements;
     private List<Notification>? recentNotifications;
+    private List<DocumentSummary> recentDocuments = [];
     private string userName = "User";
     private int currentUserId = 0;
 
@@ -146,6 +180,7 @@
             summary = await DashboardService.GetDashboardSummaryAsync(currentUserId);
             announcements = await DashboardService.GetActiveAnnouncementsAsync();
             recentNotifications = await NotificationService.GetUserNotificationsAsync(currentUserId);
+            recentDocuments = await DocumentService.GetRecentAsync(currentUserId, 5);
         }
     }
 

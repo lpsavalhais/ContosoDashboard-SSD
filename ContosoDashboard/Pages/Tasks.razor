@@ -5,6 +5,7 @@
 @using System.Security.Claims
 @attribute [Authorize]
 @inject ITaskService TaskService
+@inject IDocumentService DocumentService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>My Tasks - ContosoDashboard</PageTitle>
@@ -126,8 +127,57 @@
                                 <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewTaskDetails(task.TaskId)">
                                     <i class="bi bi-eye"></i>
                                 </button>
+                                <button class="btn btn-sm btn-outline-secondary" @onclick="() => ToggleTaskDocumentsAsync(task.TaskId)" aria-expanded="@expandedTaskIds.Contains(task.TaskId)" aria-label="Toggle documents for @task.Title" title="Documents">
+                                    <span class="bi bi-paperclip" aria-hidden="true"></span>
+                                </button>
                             </td>
                         </tr>
+                        @if (expandedTaskIds.Contains(task.TaskId))
+                        {
+                            <tr class="table-light">
+                                <td colspan="6">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                        <strong>Documents for @task.Title</strong>
+                                        @if (task.ProjectId.HasValue)
+                                        {
+                                            <button class="btn btn-sm btn-primary" @onclick="() => OpenTaskUpload(task)">
+                                                <span class="bi bi-upload me-1" aria-hidden="true"></span>Upload to task
+                                            </button>
+                                        }
+                                    </div>
+                                    @if (taskDocuments.TryGetValue(task.TaskId, out var documents) && documents.Count > 0)
+                                    {
+                                        <ul class="list-group list-group-flush">
+                                            @foreach (var document in documents)
+                                            {
+                                                <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2 px-0">
+                                                    <span>@document.Title <small class="text-muted">@document.Category</small></span>
+                                                    <span class="text-nowrap">
+                                                        <a class="btn btn-sm btn-outline-primary" href="/documents/@document.DocumentId/download" aria-label="Download @document.Title" title="Download">
+                                                            <span class="bi bi-download" aria-hidden="true"></span>
+                                                        </a>
+                                                        @if (document.CanPreview)
+                                                        {
+                                                            <a class="btn btn-sm btn-outline-secondary" href="/documents/@document.DocumentId/preview" target="_blank" rel="noopener" aria-label="Preview @document.Title" title="Preview">
+                                                                <span class="bi bi-eye" aria-hidden="true"></span>
+                                                            </a>
+                                                        }
+                                                    </span>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-muted mb-0">No documents are attached to this task.</p>
+                                    }
+                                    @if (!task.ProjectId.HasValue)
+                                    {
+                                        <p class="text-muted small mt-2 mb-0">This task has no project; upload from My Documents instead.</p>
+                                    }
+                                </td>
+                            </tr>
+                        }
                     }
                 </tbody>
             </table>
@@ -135,11 +185,19 @@
     }
 </div>
 
+@if (taskForUpload != null)
+{
+    <DocumentUploadModal Visible="true" FixedTaskId="taskForUpload.TaskId" OnClose="CloseTaskUpload" OnUploaded="OnTaskDocumentUploadedAsync" />
+}
+
 @code {
     private List<TaskItem>? tasks;
     private string filterStatus = "";
     private string filterPriority = "";
     private int currentUserId = 0;
+    private readonly HashSet<int> expandedTaskIds = [];
+    private readonly Dictionary<int, List<DocumentSummary>> taskDocuments = [];
+    private TaskItem? taskForUpload;
 
     protected override async Task OnInitializedAsync()
     {
@@ -161,6 +219,33 @@
     private async Task LoadTasks()
     {
         tasks = await TaskService.GetUserTasksAsync(currentUserId);
+    }
+
+    private async Task ToggleTaskDocumentsAsync(int taskId)
+    {
+        if (!expandedTaskIds.Add(taskId))
+        {
+            expandedTaskIds.Remove(taskId);
+            return;
+        }
+
+        taskDocuments[taskId] = await DocumentService.GetTaskDocumentsAsync(taskId, currentUserId);
+    }
+
+    private void OpenTaskUpload(TaskItem task) => taskForUpload = task;
+
+    private Task CloseTaskUpload()
+    {
+        taskForUpload = null;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnTaskDocumentUploadedAsync()
+    {
+        if (taskForUpload != null)
+        {
+            taskDocuments[taskForUpload.TaskId] = await DocumentService.GetTaskDocumentsAsync(taskForUpload.TaskId, currentUserId);
+        }
     }
 
     private async Task ApplyFilters()

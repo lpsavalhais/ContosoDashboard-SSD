@@ -1,0 +1,154 @@
+@page "/documents/reports"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Policy = "Administrator")]
+@inject IDocumentReportService ReportService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Document Reports - ContosoDashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4">
+        <div>
+            <h1 class="h2 mb-1">Document Reports</h1>
+            <p class="text-muted mb-0">Document upload and access activity.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-end gap-2">
+            <div>
+                <label class="form-label" for="report-from">From</label>
+                <InputDate id="report-from" class="form-control" @bind-Value="fromDate" />
+            </div>
+            <div>
+                <label class="form-label" for="report-to">To</label>
+                <InputDate id="report-to" class="form-control" @bind-Value="toDate" />
+            </div>
+            <button class="btn btn-primary" @onclick="LoadReportAsync" disabled="@isLoading">Apply</button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <p><em>Loading reports...</em></p>
+    }
+    else if (report == null)
+    {
+        <div class="alert alert-danger">You do not have access to reports.</div>
+    }
+    else
+    {
+        <section class="row g-4">
+            <div class="col-12 col-xl-6">
+                <h2 class="h5">Most Uploaded Types</h2>
+                @if (report.TopFileTypes.Count == 0)
+                {
+                    <p class="text-muted">No uploads in this period.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>File type</th><th>Uploads</th></tr></thead>
+                            <tbody>
+                                @foreach (var row in report.TopFileTypes)
+                                {
+                                    <tr><td>@row.FileType</td><td>@row.UploadCount</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="col-12 col-xl-6">
+                <h2 class="h5">Most Active Uploaders</h2>
+                @if (report.TopUploaders.Count == 0)
+                {
+                    <p class="text-muted">No uploads in this period.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Uploader</th><th>Uploads</th></tr></thead>
+                            <tbody>
+                                @foreach (var row in report.TopUploaders)
+                                {
+                                    <tr><td>@row.UserName</td><td>@row.UploadCount</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="col-12 col-xl-6">
+                <h2 class="h5">Most Accessed Documents</h2>
+                @if (report.AccessByDocument.Count == 0)
+                {
+                    <p class="text-muted">No document access in this period.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Document</th><th>Downloads</th><th>Previews</th></tr></thead>
+                            <tbody>
+                                @foreach (var row in report.AccessByDocument)
+                                {
+                                    <tr><td>@row.Title</td><td>@row.Downloads</td><td>@row.Previews</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+            <div class="col-12 col-xl-6">
+                <h2 class="h5">Access by Day</h2>
+                @if (report.AccessByDay.Count == 0)
+                {
+                    <p class="text-muted">No document access in this period.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead><tr><th>Date</th><th>Downloads</th><th>Previews</th></tr></thead>
+                            <tbody>
+                                @foreach (var row in report.AccessByDay)
+                                {
+                                    <tr><td>@row.Date.ToString("d")</td><td>@row.Downloads</td><td>@row.Previews</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>
+
+@code {
+    private DocumentReport? report;
+    private DateTime fromDate = DateTime.UtcNow.Date.AddDays(-30);
+    private DateTime toDate = DateTime.UtcNow.Date;
+    private bool isLoading = true;
+    private int currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (int.TryParse(authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+        {
+            currentUserId = userId;
+            await LoadReportAsync();
+        }
+        isLoading = false;
+    }
+
+    private async Task LoadReportAsync()
+    {
+        isLoading = true;
+        var startUtc = DateTime.SpecifyKind(fromDate.Date, DateTimeKind.Utc);
+        var endUtc = DateTime.SpecifyKind(toDate.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+        report = await ReportService.GetReportAsync(currentUserId, startUtc, endUtc);
+        isLoading = false;
+    }
+}

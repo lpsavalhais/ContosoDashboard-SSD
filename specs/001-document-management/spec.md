@@ -150,6 +150,7 @@ All document activities (upload, download, delete, share) are recorded. Administ
 - A Team Lead who opens or searches for a department member's "Personal Files" document that was not shared with them is denied access, and the document does not appear in their lists or search results. If the owner later changes the document's category away from "Personal Files", the Team Lead gains access.
 - When a project member who uploaded documents leaves the project, the documents remain with the project.
 - Changing the category of a project- or task-linked document to "Personal Files" is rejected with "Personal Files cannot be linked to a project or task."
+- A task without a project offers no "Upload to task" action; an attempt to upload to it is rejected with "This task has no project; upload from My Documents instead."
 - Deleting a document that has been shared removes it from all recipients' Shared with Me sections.
 - Sharing a document with someone who already has access does not create duplicate entries or duplicate notifications.
 - A user with no documents sees a helpful empty state in My Documents, Shared with Me, and the Recent Documents widget.
@@ -193,13 +194,13 @@ All document activities (upload, download, delete, share) are recorded. Administ
 - **FR-021**: Document uploaders and Administrators MUST be able to replace a document's file with an updated version. The replacement is subject to the same validation as an upload. No prior version is retained.
 - **FR-022**: Document uploaders MUST be able to delete their documents. Project Managers MUST be able to delete any document in their projects. Administrators MUST be able to delete any document. Deletion MUST require explicit confirmation and MUST permanently remove the document and its file.
 - **FR-023**: Document uploaders MUST be able to share a document with specific users or with a department. A department share grants access to all users currently in that department.
-- **FR-024**: Recipients of a shared document MUST receive an in-app notification and see the document in a "Shared with Me" section. Shared access is read-only: recipients MAY view, preview, and download, and MUST NOT edit, replace, delete, or re-share the document (unless they hold another permission under FR-016–FR-018).
+- **FR-024**: Recipients of a shared document MUST receive an in-app notification and see the document in a "Shared with Me" section. Shared access is read-only: recipients MAY view, preview, and download, and MUST NOT edit, replace, delete, or re-share the document (unless they hold another permission under FR-016–FR-018). Notifications are not created for users whose in-app notifications are disabled; their access is unaffected.
 
 **Integrations**
 
-- **FR-025**: Users MUST be able to see documents attached to a task and upload a document from the task's detail view. Such documents MUST be automatically associated with the task's project.
+- **FR-025**: Users MUST be able to see documents attached to a task and upload a document from the task's detail view. Such documents MUST be automatically associated with the task's project. Uploading to a task that has no project MUST be rejected with "This task has no project; upload from My Documents instead."
 - **FR-026**: The dashboard home page MUST show a "Recent Documents" widget listing the user's 5 most recently uploaded documents. The summary cards MUST include the user's document count.
-- **FR-027**: Members of a project MUST receive an in-app notification when a new document is added to that project. The uploader is excluded.
+- **FR-027**: Members of a project MUST receive an in-app notification when a new document is added to that project. The uploader is excluded, as are users whose in-app notifications are disabled.
 
 **Audit and reporting**
 

@@ -53,7 +53,7 @@ This application includes a **mock authentication system** designed for training
 
 ## Overview
 
-ContosoDashboard is built using ASP.NET Core 8.0 with Blazor Server and provides a centralized platform for:
+ContosoDashboard is built using ASP.NET Core 10 with Blazor Server and provides a centralized platform for:
 
 - Task management and tracking
 - Project oversight and collaboration
@@ -73,6 +73,7 @@ ContosoDashboard is built using ASP.NET Core 8.0 with Blazor Server and provides
 - **Project Details**: Comprehensive project view with task list, team members, and project statistics
 - **Team Directory**: Browse team members by department with status, roles, and contact information
 - **Notifications Center**: View and manage all notifications with read/unread status and priority badges
+- **Document Management**: Upload, search, preview, share, and manage documents with project/task integration and administrator reports
 - **User Profile**: Update personal information, availability status, and notification preferences
 - **Service-Level Security**: Authorization checks prevent IDOR vulnerabilities
 - **Data Models**: Complete entity framework models for Users, Tasks, Projects, Notifications, and Announcements
@@ -81,7 +82,7 @@ ContosoDashboard is built using ASP.NET Core 8.0 with Blazor Server and provides
 
 ### 🔧 Technical Stack
 
-- **Framework**: ASP.NET Core 8.0
+- **Framework**: ASP.NET Core 10 (.NET 10, `net10.0`)
 - **UI**: Blazor Server
 - **Database**: SQLite with Entity Framework Core
 - **Authentication**: Cookie-based mock authentication for training (Azure AD/Microsoft Entra ID ready)
@@ -137,7 +138,7 @@ public interface IFileStorageService
 
 ### Prerequisites
 
-- .NET 8.0 SDK or later
+- .NET 10 SDK or later
 - No separate database server needed (SQLite file is created automatically)
 - Visual Studio 2022 or Visual Studio Code
 
@@ -198,6 +199,9 @@ ContosoDashboard/
 │   └── ApplicationDbContext.cs      # EF Core database context
 ├── Models/
 │   ├── User.cs                      # User entity with roles
+│   ├── Document.cs                  # Document metadata
+│   ├── DocumentShare.cs             # User/department shares
+│   ├── DocumentActivity.cs          # Document activity audit
 │   ├── TaskItem.cs                  # Task entity
 │   ├── Project.cs                   # Project entity
 │   ├── TaskComment.cs               # Task comments
@@ -210,6 +214,10 @@ ContosoDashboard/
 │   ├── IProjectService.cs / ProjectService.cs
 │   ├── INotificationService.cs / NotificationService.cs
 │   ├── IDashboardService.cs / DashboardService.cs
+│   ├── IFileStorageService.cs / LocalFileStorageService.cs
+│   ├── IMalwareScanner.cs / LocalMalwareScanner.cs
+│   ├── DocumentService.cs            # Document validation, authorization, and operations
+│   ├── DocumentReportService.cs      # Administrator activity reports
 │   └── CustomAuthenticationStateProvider.cs  # Blazor Server auth integration
 ├── Pages/
 │   ├── Index.razor                  # Dashboard home page
@@ -221,15 +229,21 @@ ContosoDashboard/
 │   ├── Team.razor                   # Team member directory
 │   ├── Notifications.razor          # Notification center
 │   ├── Profile.razor                # User profile page
+│   ├── Documents.razor              # My Documents, upload, search, and management
+│   ├── SharedDocuments.razor        # Shared with Me
+│   ├── DocumentReports.razor        # Administrator reports
 │   └── _Host.cshtml                 # Blazor Server host page
 ├── Shared/
 │   ├── MainLayout.razor             # Main layout template
-│   └── NavMenu.razor                # Navigation sidebar
+│   ├── NavMenu.razor                # Navigation sidebar
+│   └── DocumentUploadModal.razor    # Reusable document upload dialog
 ├── wwwroot/
 │   └── css/site.css                 # Custom styles
 ├── Program.cs                       # Application entry point
 ├── appsettings.json                 # Configuration
 └── ContosoDashboard.csproj          # Project file
+
+ContosoDashboard.Tests/               # xUnit service, security, and storage tests
 ```
 
 ## Configuration
@@ -245,6 +259,38 @@ The default connection string in `appsettings.json` uses a local SQLite database
 ```
 
 The file is created in the application's working directory on first run. Update the path if you want it stored elsewhere.
+
+### Document Storage
+
+Document metadata is stored in SQLite. Uploaded file bytes are kept outside `wwwroot` under `ContosoDashboard/AppData/uploads` by default. The directory is ignored by Git.
+
+Configure the storage root and per-file size limit in `ContosoDashboard/appsettings.json`:
+
+```json
+"DocumentStorage": {
+   "RootPath": "AppData/uploads",
+   "MaxFileSizeBytes": 26214400
+}
+```
+
+The root path can be absolute or relative to the application content root. Files use generated names and are only served through permission-checked download and preview endpoints.
+
+### Document Management Tests and Database Reset
+
+Run the automated service, authorization, malware scanner, and storage tests from the repository root:
+
+```bash
+dotnet test ContosoDashboard.Tests
+```
+
+This application uses `EnsureCreated()` rather than EF migrations. After document schema changes, stop the app and remove the local database files so they are recreated on next startup:
+
+```bash
+cd ContosoDashboard
+rm -f ContosoDashboard.db ContosoDashboard.db-shm ContosoDashboard.db-wal
+```
+
+To also remove uploaded training files, remove `AppData/uploads` separately. This permanently deletes local training documents.
 
 ### Production Authentication Guidance
 

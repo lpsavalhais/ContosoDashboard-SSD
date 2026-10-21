@@ -257,6 +257,9 @@ ServiceFabricBackup/
 *.db-shm
 *.db-wal
 
+# Uploaded documents
+**/AppData/
+
 # SQL Server files
 *.mdf
 *.ldf

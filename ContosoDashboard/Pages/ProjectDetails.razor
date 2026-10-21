@@ -5,6 +5,7 @@
 @using System.Security.Claims
 @attribute [Authorize]
 @inject IProjectService ProjectService
+@inject IDocumentService DocumentService
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -114,7 +115,7 @@
                                     <tbody>
                                         @foreach (var task in project.Tasks.OrderBy(t => t.DueDate))
                                         {
-                                            <tr class="@(task.DueDate.HasValue && task.DueDate < DateTime.Today && task.Status != Models.TaskStatus.Completed ? "table-danger" : "")">">
+                                            <tr class="@(task.DueDate.HasValue && task.DueDate < DateTime.Today && task.Status != Models.TaskStatus.Completed ? "table-danger" : "")">
                                                 <td>
                                                     <strong>@task.Title</strong>
                                                     @if (!string.IsNullOrEmpty(task.Description))
@@ -229,14 +230,105 @@
                 </div>
             </div>
         </div>
+
+        <section class="card mb-4" aria-labelledby="project-documents-heading">
+            <div class="card-header d-flex align-items-center justify-content-between gap-2">
+                <h2 id="project-documents-heading" class="h5 mb-0">Project Documents</h2>
+                <button class="btn btn-primary btn-sm" @onclick="OpenDocumentUpload">
+                    <span class="bi bi-upload me-1" aria-hidden="true"></span>Upload to project
+                </button>
+            </div>
+            <div class="card-body">
+                @if (projectDocuments.Count == 0)
+                {
+                    <p class="text-muted mb-0">No documents for this project yet.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Title</th>
+                                    <th scope="col">Category</th>
+                                    <th scope="col">Uploaded by</th>
+                                    <th scope="col">Date</th>
+                                    <th scope="col">Size</th>
+                                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var document in projectDocuments)
+                                {
+                                    <tr @key="document.DocumentId">
+                                        <th scope="row">@document.Title</th>
+                                        <td>@document.Category</td>
+                                        <td>@document.UploaderName</td>
+                                        <td>@document.UploadedDate.ToLocalTime().ToString("g")</td>
+                                        <td>@FormatDocumentSize(document.FileSizeBytes)</td>
+                                        <td class="text-nowrap">
+                                            <a class="btn btn-sm btn-outline-primary" href="/documents/@document.DocumentId/download" aria-label="Download @document.Title" title="Download">
+                                                <span class="bi bi-download" aria-hidden="true"></span>
+                                            </a>
+                                            @if (document.CanPreview)
+                                            {
+                                                <a class="btn btn-sm btn-outline-secondary" href="/documents/@document.DocumentId/preview" target="_blank" rel="noopener" aria-label="Preview @document.Title" title="Preview">
+                                                    <span class="bi bi-eye" aria-hidden="true"></span>
+                                                </a>
+                                            }
+                                            @if (document.CanDelete)
+                                            {
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => BeginDeleteProjectDocument(document)" aria-label="Delete @document.Title" title="Delete">
+                                                    <span class="bi bi-trash" aria-hidden="true"></span>
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </section>
     }
 </div>
+
+@if (showDocumentUpload)
+{
+    <DocumentUploadModal Visible="true" FixedProjectId="ProjectId" OnClose="CloseDocumentUpload" OnUploaded="OnProjectDocumentUploadedAsync" />
+}
+
+@if (deletingProjectDocument != null)
+{
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title fs-5">Delete document</h2>
+                    <button type="button" class="btn-close" aria-label="Close" @onclick="CancelDeleteProjectDocument"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Permanently delete '@deletingProjectDocument.Title'? This cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline-secondary" @onclick="CancelDeleteProjectDocument">Cancel</button>
+                    <button class="btn btn-danger" @onclick="ConfirmDeleteProjectDocumentAsync">Delete permanently</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
 
 @code {
     [Parameter]
     public int ProjectId { get; set; }
 
     private Project? project;
+    private List<DocumentSummary> projectDocuments = [];
+    private bool showDocumentUpload;
+    private DocumentSummary? deletingProjectDocument;
     private int currentUserId = 0;
 
     protected override async Task OnInitializedAsync()
@@ -253,12 +345,59 @@
         if (currentUserId > 0)
         {
             project = await ProjectService.GetProjectByIdAsync(ProjectId, currentUserId);
+            if (project != null)
+            {
+                projectDocuments = await DocumentService.GetProjectDocumentsAsync(ProjectId, currentUserId);
+            }
         }
         
         if (project == null)
         {
             NavigationManager.NavigateTo("/projects");
         }
+    }
+
+    private void OpenDocumentUpload() => showDocumentUpload = true;
+
+    private Task CloseDocumentUpload()
+    {
+        showDocumentUpload = false;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnProjectDocumentUploadedAsync()
+    {
+        projectDocuments = await DocumentService.GetProjectDocumentsAsync(ProjectId, currentUserId);
+    }
+
+    private void BeginDeleteProjectDocument(DocumentSummary document) => deletingProjectDocument = document;
+    private void CancelDeleteProjectDocument() => deletingProjectDocument = null;
+
+    private async Task ConfirmDeleteProjectDocumentAsync()
+    {
+        if (deletingProjectDocument == null)
+        {
+            return;
+        }
+
+        await DocumentService.DeleteAsync(deletingProjectDocument.DocumentId, currentUserId);
+        deletingProjectDocument = null;
+        projectDocuments = await DocumentService.GetProjectDocumentsAsync(ProjectId, currentUserId);
+    }
+
+    private static string FormatDocumentSize(long size)
+    {
+        if (size < 1024)
+        {
+            return $"{size} B";
+        }
+
+        if (size < 1_048_576)
+        {
+            return $"{size / 1024d:0.#} KB";
+        }
+
+        return $"{size / 1_048_576d:0.#} MB";
     }
 
     private string GetStatusColor(ProjectStatus status)

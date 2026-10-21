@@ -3,6 +3,7 @@ using ContosoDashboard.Data;
 using ContosoDashboard.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,6 +44,11 @@ builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.Configure<DocumentStorageOptions>(builder.Configuration.GetSection("DocumentStorage"));
+builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+builder.Services.AddSingleton<IMalwareScanner, LocalMalwareScanner>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IDocumentReportService, DocumentReportService>();
 
 // Add HttpContextAccessor for accessing user claims
 builder.Services.AddHttpContextAccessor();
@@ -107,5 +113,41 @@ app.UseAuthorization();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
+
+app.MapGet("/documents/{id:int}/download", async (int id, HttpContext context, IDocumentService documents) =>
+{
+    if (!int.TryParse(context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+    {
+        return Results.NotFound();
+    }
+
+    var content = await documents.OpenForReadAsync(id, userId, isPreview: false);
+    if (content == null)
+    {
+        return Results.NotFound();
+    }
+
+    context.Response.Headers["Cache-Control"] = "no-store";
+    context.Response.Headers["Content-Disposition"] = $"attachment; filename*=UTF-8''{Uri.EscapeDataString(content.FileName)}";
+    return Results.File(content.Content, content.ContentType, enableRangeProcessing: true);
+}).RequireAuthorization();
+
+app.MapGet("/documents/{id:int}/preview", async (int id, HttpContext context, IDocumentService documents) =>
+{
+    if (!int.TryParse(context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+    {
+        return Results.NotFound();
+    }
+
+    var content = await documents.OpenForReadAsync(id, userId, isPreview: true);
+    if (content == null)
+    {
+        return Results.NotFound();
+    }
+
+    context.Response.Headers["Cache-Control"] = "no-store";
+    context.Response.Headers["Content-Disposition"] = $"inline; filename*=UTF-8''{Uri.EscapeDataString(content.FileName)}";
+    return Results.File(content.Content, content.ContentType, enableRangeProcessing: true);
+}).RequireAuthorization();
 
 app.Run();

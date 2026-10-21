@@ -1,0 +1,92 @@
+@page "/documents/shared"
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject IDocumentService DocumentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Shared with Me - ContosoDashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="mb-4">
+        <h1 class="h2 mb-1">Shared with Me</h1>
+        <p class="text-muted mb-0">Documents shared directly with you or with your department.</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <p><em>Loading shared documents...</em></p>
+    }
+    else if (documents.Count == 0)
+    {
+        <div class="alert alert-info">No documents have been shared with you.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Title</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Shared by / uploaded by</th>
+                        <th scope="col">Date</th>
+                        <th scope="col">Size</th>
+                        <th scope="col"><span class="visually-hidden">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var document in documents)
+                    {
+                        <tr @key="document.DocumentId">
+                            <th scope="row">@document.Title</th>
+                            <td>@document.Category</td>
+                            <td>@document.UploaderName</td>
+                            <td>@document.UploadedDate.ToLocalTime().ToString("g")</td>
+                            <td>@FormatSize(document.FileSizeBytes)</td>
+                            <td class="text-nowrap">
+                                <a class="btn btn-sm btn-outline-primary" href="/documents/@document.DocumentId/download" aria-label="Download @document.Title" title="Download">
+                                    <span class="bi bi-download" aria-hidden="true"></span>
+                                </a>
+                                @if (document.CanPreview)
+                                {
+                                    <a class="btn btn-sm btn-outline-secondary" href="/documents/@document.DocumentId/preview" target="_blank" rel="noopener" aria-label="Preview @document.Title" title="Preview">
+                                        <span class="bi bi-eye" aria-hidden="true"></span>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<DocumentSummary> documents = [];
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (int.TryParse(authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+        {
+            documents = await DocumentService.GetSharedWithMeAsync(userId);
+        }
+        isLoading = false;
+    }
+
+    private static string FormatSize(long size)
+    {
+        if (size < 1024)
+        {
+            return $"{size} B";
+        }
+        if (size < 1_048_576)
+        {
+            return $"{size / 1024d:0.#} KB";
+        }
+        return $"{size / 1_048_576d:0.#} MB";
+    }
+}
